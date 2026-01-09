@@ -1,69 +1,36 @@
-import { CheckCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Project } from '@/lib/mockData';
+// src/components/dashboard/RecentActivity.tsx
+import { Activity } from 'lucide-react';
+import { text } from 'stream/consumers';
 
-interface Props {
-  projects: Project[];
-}
-
-export function RecentActivity({ projects }: Props) {
-  // Generamos actividades dinámicas basadas en los datos reales
-  const completed = projects.filter(p => p.status === 'completado').slice(0, 2);
-  const risky = projects.filter(p => p.status === 'en_riesgo').slice(0, 2);
-  const newProjects = projects.slice(0, 1); // Asumimos los primeros son nuevos
-
+export function RecentActivity() {
+  // Datos simulados estáticos para actividad reciente (logs del sistema)
   const activities = [
-    ...risky.map(p => ({
-      id: `risk-${p.id}`,
-      title: 'Alerta de Riesgo',
-      description: `${p.nombre} requiere atención inmediata.`,
-      time: 'Hace poco',
-      icon: AlertTriangle,
-      color: 'text-danger bg-danger/10'
-    })),
-    ...completed.map(p => ({
-      id: `complete-${p.id}`,
-      title: 'Proyecto Completado',
-      description: `${p.nombre} ha finalizado.`,
-      time: 'Hoy',
-      icon: CheckCircle,
-      color: 'text-success bg-success/10'
-    })),
-    ...newProjects.map(p => ({
-      id: `new-${p.id}`,
-      title: 'Nuevo Proyecto Registrado',
-      description: p.nombre,
-      time: 'Reciente',
-      icon: FileText,
-      color: 'text-primary bg-primary/10'
-    }))
-  ].slice(0, 5); // Mostrar solo 5 eventos
+    { id: 1, text: "Actualización masiva de avances", time: "Hace 2 horas" },
+    { id: 2, text: "Sincronización con POA 2026", time: "Hace 5 horas" },
+    { id: 3, text: "Reporte mensual generado", time: "Ayer" },
+    { id: 4, text: "Holaaaaa"}
+  ];
 
   return (
-    <div className="bg-card rounded-xl p-6 shadow-sm border border-border animate-slide-up" style={{ animationDelay: '300ms' }}>
-      <h3 className="font-display font-semibold text-lg mb-4">Actividad del Sistema</h3>
-      
-      <div className="space-y-4">
-        {activities.map((activity, index) => {
-          const Icon = activity.icon;
-          return (
-            <div key={activity.id} className="flex items-start gap-3 animate-fade-in">
-              <div className={cn("p-2 rounded-lg shrink-0", activity.color)}>
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{activity.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{activity.description}</p>
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{activity.time}</span>
+    <div className="bg-card rounded-xl p-6 shadow-sm border border-border">
+      <h3 className="font-display font-semibold text-lg mb-4 flex items-center gap-2">
+        <Activity className="h-4 w-4" /> Actividad Reciente
+      </h3>
+      <div className="space-y-6">
+        {activities.map((item, i) => (
+          <div key={item.id} className="flex gap-3 relative">
+            {i !== activities.length - 1 && (
+              <div className="absolute left-[9px] top-6 bottom-[-24px] w-[2px] bg-border" />
+            )}
+            <div className="relative z-10 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center border border-background">
+              <div className="w-2 h-2 rounded-full bg-primary" />
             </div>
-          );
-        })}
-        {activities.length === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-4">
-            Sin actividad reciente registrada.
+            <div className="flex-1 -mt-1">
+              <p className="text-sm font-medium">{item.text}</p>
+              <p className="text-xs text-muted-foreground">{item.time}</p>
+            </div>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

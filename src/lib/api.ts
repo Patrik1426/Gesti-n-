@@ -14,7 +14,10 @@ export async function fetchProjects(): Promise<Project[]> {
     const results = Array.isArray(data) ? data : data.results || [];
 
     return results.map((obra: any) => ({
-      id: `OBRA-${obra.id_excel || Math.random()}`,
+      // CORRECCIÓN AQUÍ: Usamos obra.id (PK de Django) que es 100% único.
+      // Si prefieres ver el ID de Excel, podrías concatenar ambos: `OBRA-${obra.id_excel}-${obra.id}`
+      id: `OBRA-${obra.id}`, 
+      
       nombre: obra.programa || 'Sin nombre',
       descripcion: obra.descripcion || obra.observaciones || 'Sin descripción',
       direccion: obra.area_responsable || 'Dirección General',
@@ -47,7 +50,7 @@ export async function fetchProjects(): Promise<Project[]> {
   }
 }
 
-// Funciones auxiliares robustas
+// Funciones auxiliares (se mantienen igual)
 function mapStatus(semaforo: string): ProjectStatus {
   const s = (semaforo || '').toUpperCase();
   if (s === 'ROJO') return 'en_riesgo';
@@ -58,7 +61,6 @@ function mapStatus(semaforo: string): ProjectStatus {
 }
 
 function mapPriority(valNum: number, valStr: string): Priority {
-  // Intenta usar el número, si no, extrae el primer dígito del texto "5 - Muy Alto"
   let num = valNum;
   if (!num && valStr) {
     const match = valStr.match(/\d+/);

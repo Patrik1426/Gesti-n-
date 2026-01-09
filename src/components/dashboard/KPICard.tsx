@@ -1,64 +1,73 @@
+import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface KPICardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
   icon: LucideIcon;
-  trend?: {
-    value: number;
-    label: string;
-  };
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
-  delay?: number;
+  // SOLUCIÓN: Aceptamos ambas formas para que no falle TS
+  trend?: string | { value: number; label: string }; 
+  trendUp?: boolean;
+  description?: string;
+  alert?: boolean;
 }
 
-export function KPICard({ title, value, subtitle, icon: Icon, trend, variant = 'default', delay = 0 }: KPICardProps) {
-  const variantStyles = {
-    default: 'bg-primary/10 text-primary',
-    success: 'bg-success/10 text-success',
-    warning: 'bg-warning/10 text-warning',
-    danger: 'bg-danger/10 text-danger',
-    info: 'bg-info/10 text-info',
-  };
-
-  const TrendIcon = trend ? (trend.value > 0 ? TrendingUp : trend.value < 0 ? TrendingDown : Minus) : null;
-  const trendColor = trend ? (trend.value > 0 ? 'text-success' : trend.value < 0 ? 'text-danger' : 'text-muted-foreground') : '';
+export function KPICard({ 
+  title, 
+  value, 
+  icon: Icon, 
+  trend, 
+  trendUp, 
+  alert 
+}: KPICardProps) {
+  
+  // Lógica de visualización del trend
+  let trendContent;
+  if (typeof trend === 'object') {
+     // Si es objeto {value, label}
+     trendContent = (
+        <>
+          <span className="font-bold">{trend.value > 0 ? '+' : ''}{trend.value}</span> 
+          {' '}{trend.label}
+        </>
+     );
+  } else {
+     // Si es string directo
+     trendContent = trend;
+  }
 
   return (
-    <div 
-      className="group relative bg-card rounded-xl p-6 shadow-sm border border-border card-hover overflow-hidden animate-slide-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      {/* Decorative gradient */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <div className={cn("p-3 rounded-lg", variantStyles[variant])}>
-            <Icon className="h-5 w-5" />
-          </div>
-          {trend && TrendIcon && (
-            <div className={cn("flex items-center gap-1 text-sm", trendColor)}>
-              <TrendIcon className="h-4 w-4" />
-              <span className="font-medium">{Math.abs(trend.value)}%</span>
-            </div>
-          )}
-        </div>
+    <div className={cn(
+      "bg-card rounded-xl p-5 shadow-sm border border-border flex items-start justify-between animate-slide-up hover:shadow-md transition-all",
+      alert && "border-l-4 border-l-destructive"
+    )}>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+        <h3 className="text-2xl font-display font-bold text-foreground">{value}</h3>
         
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-          <p className="text-3xl font-display font-bold text-foreground animate-count-up" style={{ animationDelay: `${delay + 200}ms` }}>
-            {value}
-          </p>
-          {subtitle && (
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
-          )}
-          {trend && (
-            <p className="text-xs text-muted-foreground">{trend.label}</p>
-          )}
-        </div>
+        {trend && (
+          <div className={cn(
+            "flex items-center gap-1 text-xs mt-2 font-medium",
+            trendUp ? "text-emerald-600" : "text-destructive"
+          )}>
+            {trendUp ? (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+            ) : (
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+            )}
+            <span>{trendContent}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className={cn(
+        "p-3 rounded-lg",
+        alert ? "bg-destructive/10" : "bg-primary/10"
+      )}>
+        <Icon className={cn(
+          "h-5 w-5",
+          alert ? "text-destructive" : "text-primary"
+        )} />
       </div>
     </div>
   );

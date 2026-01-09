@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { mockProjects, direcciones, Project, ProjectStatus, Priority } from '@/lib/mockData';
+import { useState, useEffect } from 'react';
+import { direcciones, Project } from '@/lib/mockData'; // Quitamos mockProjects, mantenemos tipos y catálogos estáticos
+import { fetchProjects } from '@/lib/api'; // Importamos la conexión real
 import { ProjectCard } from '@/components/projects/ProjectCard';
 import { ProjectDetail } from '@/components/projects/ProjectDetail';
 import { Button } from '@/components/ui/button';
@@ -11,24 +12,59 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Search, Filter, Grid, List, Plus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton'; // Usamos componentes de UI existentes
+import { Search, Grid, List, Plus, RefreshCw } from 'lucide-react'; // Agregué RefreshCw para recargar
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner'; // Asumiendo que usas sonner o el hook de toast que vi en tus archivos
 
 export function ProjectsView() {
+  // --- Estados de Datos ---
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // --- Estados de UI ---
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // --- Estados de Filtros ---
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [directionFilter, setDirectionFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const filteredProjects = mockProjects.filter(project => {
+  // --- Carga de Datos ---
+  const loadProjects = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchProjects();
+      setProjects(data);
+      // Opcional: Mostrar toast de éxito solo si es una recarga manual
+    } catch (err) {
+      console.error(err);
+      setError('No se pudieron cargar los proyectos. Verifica que el backend esté corriendo.');
+      toast.error("Error de conexión con el servidor");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cargar al montar el componente
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  // --- Lógica de Filtrado (Aplicada sobre los datos reales) ---
+  const filteredProjects = projects.filter(project => {
     const matchesSearch = project.nombre.toLowerCase().includes(search.toLowerCase()) ||
       project.responsable.toLowerCase().includes(search.toLowerCase()) ||
       project.ubicacion.toLowerCase().includes(search.toLowerCase());
+    
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || project.prioridad === priorityFilter;
     const matchesDirection = directionFilter === 'all' || project.direccion === directionFilter;
+    
     return matchesSearch && matchesStatus && matchesPriority && matchesDirection;
   });
 
@@ -41,13 +77,18 @@ export function ProjectsView() {
             Cartera de Proyectos
           </h1>
           <p className="text-muted-foreground mt-1">
-            {filteredProjects.length} proyectos en seguimiento
+            {isLoading ? 'Cargando proyectos...' : `${filteredProjects.length} proyectos en seguimiento`}
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Proyecto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="icon" onClick={loadProjects} title="Recargar datos">
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          </Button>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nuevo Proyecto
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -60,11 +101,12 @@ export function ProjectsView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
+              disabled={isLoading}
             />
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={setStatusFilter} disabled={isLoading}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
@@ -78,7 +120,7 @@ export function ProjectsView() {
               </SelectContent>
             </Select>
 
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <Select value={priorityFilter} onValueChange={setPriorityFilter} disabled={isLoading}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Prioridad" />
               </SelectTrigger>
@@ -91,7 +133,7 @@ export function ProjectsView() {
               </SelectContent>
             </Select>
 
-            <Select value={directionFilter} onValueChange={setDirectionFilter}>
+            <Select value={directionFilter} onValueChange={setDirectionFilter} disabled={isLoading}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Dirección" />
               </SelectTrigger>
@@ -125,36 +167,66 @@ export function ProjectsView() {
         </div>
       </div>
 
-      {/* Projects Grid/List */}
-      {viewMode === 'grid' ? (
+      {/* Loading State */}
+      {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredProjects.map((project, index) => (
-            <ProjectCard 
-              key={project.id} 
-              project={project} 
-              onClick={() => setSelectedProject(project)}
-              delay={index * 50}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredProjects.map((project, index) => (
-            <ProjectCard 
-              key={project.id} 
-              project={project} 
-              onClick={() => setSelectedProject(project)}
-              delay={index * 30}
-            />
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex flex-col space-y-3">
+              <Skeleton className="h-[200px] w-full rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+              </div>
+            </div>
           ))}
         </div>
       )}
 
-      {filteredProjects.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground animate-fade-in">
-          <p className="text-lg">No se encontraron proyectos</p>
-          <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+      {/* Error State */}
+      {!isLoading && error && (
+        <div className="text-center py-12 text-destructive animate-fade-in bg-destructive/10 rounded-xl border border-destructive/20">
+          <p className="text-lg font-semibold">Error de conexión</p>
+          <p className="text-sm">{error}</p>
+          <Button variant="link" onClick={loadProjects} className="mt-2">
+            Reintentar
+          </Button>
         </div>
+      )}
+
+      {/* Projects Grid/List */}
+      {!isLoading && !error && (
+        <>
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredProjects.map((project, index) => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  onClick={() => setSelectedProject(project)}
+                  delay={index * 50}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredProjects.map((project, index) => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  onClick={() => setSelectedProject(project)}
+                  delay={index * 30}
+                />
+              ))}
+            </div>
+          )}
+
+          {filteredProjects.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground animate-fade-in">
+              <p className="text-lg">No se encontraron proyectos</p>
+              <p className="text-sm">Intenta ajustar los filtros de búsqueda</p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Project Detail Modal */}
